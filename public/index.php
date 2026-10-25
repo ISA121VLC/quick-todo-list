@@ -53,6 +53,7 @@ $authController = new AuthController($auth, new LoginThrottle($pdo, $clock), $cs
 $controller = new TaskController(
     new TaskRepository($pdo, $clock),
     new TaskValidator(),
+    $auth,
     $csrf,
     $clock,
     $timezone,

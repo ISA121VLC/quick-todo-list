@@ -67,10 +67,35 @@ final class AuthTest extends TestCase
         $auth = new Auth($session, null);
 
         $this->assertFalse($auth->isLoggedIn());
-        $auth->login();
+        $auth->login('Ana');
         $this->assertTrue($auth->isLoggedIn());
+        $this->assertSame('Ana', $auth->user());
         $auth->logout();
         $this->assertFalse($auth->isLoggedIn());
+        $this->assertNull($auth->user());
+    }
+
+    /**
+     * @return iterable<string, array{mixed, ?string}>
+     */
+    public static function names(): iterable
+    {
+        yield 'normal' => ['Nacho', 'Nacho'];
+        yield 'recorta y colapsa espacios' => ["  Ana   María \n", 'Ana María'];
+        yield 'con tildes y ñ' => ['Íñigo', 'Íñigo'];
+        yield 'exactamente 30' => [str_repeat('ñ', 30), str_repeat('ñ', 30)];
+        yield '31 es demasiado' => [str_repeat('a', 31), null];
+        yield 'vacío' => ['', null];
+        yield 'solo espacios' => ["   \t ", null];
+        yield 'carácter de control' => ["Ana\x07", null];
+        yield 'no es texto' => [['Ana'], null];
+        yield 'UTF-8 inválido' => ["\xff\xfe", null];
+    }
+
+    #[DataProvider('names')]
+    public function testCleanName(mixed $input, ?string $expected): void
+    {
+        $this->assertSame($expected, Auth::cleanName($input));
     }
 
     /**

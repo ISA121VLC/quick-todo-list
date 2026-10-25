@@ -515,3 +515,49 @@
     86%, 94% { opacity: 1; transform: scale(1) rotate(0deg); }
     98%, 100% { opacity: 0; transform: scale(0.4); }
 }
+
+/* ---------- Diálogo en dos pasos: nombre y contraseña ---------- */
+
+.entrada h2 + form {
+    grid-template-columns: 1fr;
+}
+
+.entrada input[type="text"] {
+    min-height: 3rem;
+    font-size: 1.1rem;
+}
+
+/* Sin JS se ven los dos campos y solo "Entrar"; con JS (clase con-js) se muestra un paso cada vez. */
+.entrada .siguiente,
+.entrada .atras {
+    display: none;
+}
+
+.entrada form.con-js[data-paso="1"] .paso-clave,
+.entrada form.con-js[data-paso="1"] .enviar,
+.entrada form.con-js[data-paso="1"] .atras,
+.entrada form.con-js[data-paso="2"] .paso-quien,
+.entrada form.con-js[data-paso="2"] .siguiente {
+    display: none;
+}
+
+.entrada form.con-js[data-paso="1"] .siguiente,
+.entrada form.con-js[data-paso="2"] .atras {
+    display: inline-flex;
+}
+
+.entrada button.atras {
+    min-height: 2.75rem;
+    padding: 0.4rem 0.2rem;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--acento);
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.entrada button.atras::before,
+.entrada button.atras::after {
+    content: none;
+}

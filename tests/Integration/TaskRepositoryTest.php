@@ -81,7 +81,16 @@ final class TaskRepositoryTest extends TestCase
             'completed' => 0,
             'created_at' => '2026-03-10T10:00:00.000000Z',
             'updated_at' => '2026-03-10T10:00:00.000000Z',
+            'created_by' => '',
         ]], $this->repo->all());
+    }
+
+    public function testCreateStoresWhoCreatedItAndUpdateKeepsIt(): void
+    {
+        $id = $this->repo->create(['title' => 'x', 'description' => '', 'due_date' => null, 'priority' => 2], 'Marta');
+        $this->repo->update($id, ['title' => 'y', 'description' => '', 'due_date' => null, 'priority' => 2]);
+
+        $this->assertSame('Marta', $this->repo->find($id)['created_by']);
     }
 
     public function testCreateStoresNullDueDate(): void
@@ -206,6 +215,7 @@ final class TaskRepositoryTest extends TestCase
             'completed' => 0,
             'created_at' => '2026-03-10T10:00:00.000000Z',
             'updated_at' => '2026-03-10T10:00:00.000001Z',
+            'created_by' => '',
         ], $this->repo->find($id));
     }
 

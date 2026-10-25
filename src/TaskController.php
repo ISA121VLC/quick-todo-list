@@ -26,6 +26,7 @@ final class TaskController
     public function __construct(
         private TaskRepository $repo,
         private TaskValidator $validator,
+        private Auth $auth,
         private Csrf $csrf,
         private Clock $clock,
         private DateTimeZone $timezone,
@@ -46,7 +47,7 @@ final class TaskController
             return;
         }
 
-        $this->repo->create($data);
+        $this->repo->create($data, $this->auth->user() ?? '');
         $this->redirectToList(self::filter($_POST));
     }
 

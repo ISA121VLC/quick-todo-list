@@ -12,7 +12,7 @@ use PDO;
  *
  * @phpstan-type TaskRow array{
  *     id: int, title: string, description: string, due_date: ?string,
- *     priority: int, completed: int, created_at: string, updated_at: string
+ *     priority: int, completed: int, created_at: string, updated_at: string, created_by: string
  * }
  * @phpstan-type TaskData array{title: string, description: string, due_date: ?string, priority: int}
  */
@@ -33,14 +33,15 @@ final class TaskRepository
 
     /**
      * @param TaskData $data Datos ya validados por TaskValidator.
+     * @param string $createdBy Nombre de quien la crea ('' si no se conoce).
      * @return int Id de la tarea creada.
      */
-    public function create(array $data): int
+    public function create(array $data, string $createdBy = ''): int
     {
         $now = $this->timestamp();
         $stmt = $this->pdo->prepare(
-            'INSERT INTO tasks (title, description, due_date, priority, created_at, updated_at)
-             VALUES (:title, :description, :due_date, :priority, :created_at, :updated_at)'
+            'INSERT INTO tasks (title, description, due_date, priority, created_at, updated_at, created_by)
+             VALUES (:title, :description, :due_date, :priority, :created_at, :updated_at, :created_by)'
         );
         $stmt->execute([
             'title' => $data['title'],
@@ -49,6 +50,7 @@ final class TaskRepository
             'priority' => $data['priority'],
             'created_at' => $now,
             'updated_at' => $now,
+            'created_by' => $createdBy,
         ]);
 
         return (int) $this->pdo->lastInsertId();

@@ -8,9 +8,13 @@
  * @var ?string $error Mensaje de error del último intento.
  * @var int $retryAfter Segundos de bloqueo restantes (0 si no hay bloqueo).
  * @var int $maxLength Longitud máxima de la contraseña.
+ * @var string $name Nombre recordado o escrito en el último intento.
+ * @var int $nameMaxLength Longitud máxima del nombre.
+ * @var int $step Paso inicial del diálogo con JS: 1 = nombre, 2 = contraseña.
  * @var Closure(mixed): string $e
  */
 
+use App\Assets;
 use App\Csrf;
 
 $tasks = [
@@ -28,9 +32,9 @@ $tasks = [
     <title>quick-todo-list · Tus tareas, bajo control</title>
     <meta name="description" content="Una lista de tareas sencilla: apunta, prioriza y tacha.">
     <link rel="icon" href="/logo.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/landing.css">
-    <script src="/landing.js" defer></script>
+    <link rel="stylesheet" href="<?= $e(Assets::url('style.css')) ?>">
+    <link rel="stylesheet" href="<?= $e(Assets::url('landing.css')) ?>">
+    <script src="<?= $e(Assets::url('landing.js')) ?>" defer></script>
 </head>
 <body class="portada">
     <div class="landing" id="landing">
@@ -102,10 +106,15 @@ $tasks = [
             <span aria-hidden="true">×</span>
             <span class="solo-lectores">Cerrar</span>
         </button>
-        <h2 id="entrada-titulo">Entrar</h2>
-        <form method="post" action="/login" autocomplete="off">
+        <h2 id="entrada-titulo">¿Quién eres?</h2>
+        <form method="post" action="/login" autocomplete="off" id="form-entrada" data-paso="<?= $e($step) ?>">
             <input type="hidden" name="<?= $e(Csrf::FIELD) ?>" value="<?= $e($csrfToken) ?>">
-            <p>
+            <p class="paso-quien">
+                <label for="nombre">Tu nombre</label>
+                <input type="text" id="nombre" name="nombre" maxlength="<?= $e($nameMaxLength) ?>"
+                       autocomplete="nickname" value="<?= $e($name) ?>" required>
+            </p>
+            <p class="paso-clave">
                 <label for="password">Contraseña</label>
                 <input type="password" id="password" name="password" maxlength="<?= $e($maxLength) ?>"
                        autocomplete="current-password" required<?= $retryAfter > 0 ? ' disabled' : '' ?>>
@@ -114,7 +123,11 @@ $tasks = [
             <?php if ($error !== null): ?>
                 <p class="error" role="alert" id="error-acceso"<?= $retryAfter > 0 ? ' data-espera="' . $e($retryAfter) . '"' : '' ?>><?= $e($error) ?></p>
             <?php endif ?>
-            <p><button type="submit"<?= $retryAfter > 0 ? ' disabled' : '' ?>>Entrar</button></p>
+            <p class="acciones-entrada">
+                <button type="button" class="siguiente" id="siguiente">Aceptar</button>
+                <button type="submit" class="enviar"<?= $retryAfter > 0 ? ' disabled' : '' ?>>Entrar</button>
+                <button type="button" class="atras" id="atras">¿No eres <span id="quien-eres"><?= $e($name) ?></span>?</button>
+            </p>
         </form>
     </dialog>
 </body>

@@ -45,6 +45,8 @@ php bin/set-password.php
 
 Se guarda su hash en `data/password.hash` (o en `APP_PASSWORD_FILE`; también vale `APP_PASSWORD_HASH`). Sin contraseña configurada nadie puede entrar. Con Docker: `docker compose exec app php bin/set-password.php`.
 
+Antes de la contraseña se pregunta «¿Quién eres?». Ese nombre (hasta 30 caracteres) se recuerda en la cookie `quien`, de larga duración, y se guarda en cada tarea que crees (columna `created_by`, visible como «Creada por»). Es una etiqueta, no una identidad verificada: cualquiera que conozca la contraseña puede escribir el nombre que quiera.
+
 Límite de intentos por IP: 3 fallos en menos de 1 minuto bloquean el acceso 2 minutos; si tras ese bloqueo vuelven a fallar 3 intentos, la IP queda vetada 1 hora. Detrás de Cloudflare se usa la cabecera `CF-Connecting-IP` (solo se confía en ella si la conexión llega desde loopback).
 
 ## Con Docker

@@ -18,7 +18,8 @@ final class Database
             priority    INTEGER NOT NULL DEFAULT 2 CHECK (priority IN (1, 2, 3)),
             completed   INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
             created_at  TEXT    NOT NULL,
-            updated_at  TEXT    NOT NULL
+            updated_at  TEXT    NOT NULL,
+            created_by  TEXT    NOT NULL DEFAULT ''
         );
         CREATE TABLE IF NOT EXISTS login_throttle (
             ip            TEXT    PRIMARY KEY,
@@ -46,6 +47,12 @@ final class Database
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
         $pdo->exec(self::SCHEMA);
+
+        // Bases creadas antes de registrar el autor de cada tarea.
+        $columns = array_column($pdo->query('PRAGMA table_info(tasks)')->fetchAll(), 'name');
+        if (!in_array('created_by', $columns, true)) {
+            $pdo->exec("ALTER TABLE tasks ADD COLUMN created_by TEXT NOT NULL DEFAULT ''");
+        }
 
         return $pdo;
     }

@@ -68,6 +68,7 @@ $autofocus = true;
                 <div class="detalles">
                     <span>Fecha límite: <?= $task['due_date'] !== null ? $e($task['due_date']) : 'sin fecha' ?></span>
                     <span>Estado: <?= $task['completed'] ? 'completada' : 'pendiente' ?></span>
+                    <?php if ($task['created_by'] !== ''): ?><span>Creada por: <?= $e($task['created_by']) ?></span><?php endif ?>
                 </div>
                 <div class="acciones">
                     <a href="/tasks/<?= $e($task['id']) ?>/edit?estado=<?= $e($filter) ?>">Editar</a>

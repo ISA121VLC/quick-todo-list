@@ -55,7 +55,25 @@ final class DatabaseTest extends TestCase
             'completed' => ['INTEGER', true, '0', false],
             'created_at' => ['TEXT', true, null, false],
             'updated_at' => ['TEXT', true, null, false],
+            'created_by' => ['TEXT', true, "''", false],
         ], $columns);
+    }
+
+    public function testAddsCreatedByColumnToAnOlderDatabaseKeepingItsRows(): void
+    {
+        mkdir(dirname($this->path), 0775, true);
+        $old = new PDO('sqlite:' . $this->path);
+        $old->exec("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+            due_date TEXT NULL, priority INTEGER NOT NULL DEFAULT 2, completed INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL)");
+        $old->exec("INSERT INTO tasks (title, created_at, updated_at) VALUES ('antigua', 't', 't')");
+        unset($old);
+
+        $pdo = Database::connect($this->path);
+
+        $this->assertSame('', $pdo->query("SELECT created_by FROM tasks WHERE title = 'antigua'")->fetchColumn());
+        Database::connect($this->path); // volver a conectar no repite la migración
+        $this->addToAssertionCount(1);
     }
 
     public function testAppliesDefaults(): void

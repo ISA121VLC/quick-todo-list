@@ -62,13 +62,13 @@ final class HttpTest extends TestCase
     /**
      * Inicia sesión como lo haría el navegador: portada, token CSRF y POST /login.
      */
-    private function login(string $password = self::PASSWORD): array
+    private function login(string $password = self::PASSWORD, string $name = 'Tester'): array
     {
         $body = $this->request('GET', '/')['body'];
         $field = preg_quote(Csrf::FIELD, '/');
         $this->assertSame(1, preg_match("/name=\"$field\" value=\"([0-9a-f]+)\"/", $body, $m), 'Falta el token CSRF de la portada');
 
-        return $this->request('POST', '/login', [Csrf::FIELD => $m[1], 'password' => $password]);
+        return $this->request('POST', '/login', [Csrf::FIELD => $m[1], 'nombre' => $name, 'password' => $password]);
     }
 
     public function testEmptyDatabaseShowsNoTasks(): void
@@ -218,6 +218,17 @@ final class HttpTest extends TestCase
         $this->assertStringContainsString('id="entrada"', $this->request('GET', '/')['body']);
     }
 
+    public function testLandingAssetsCarryAVersionSoCachesDoNotServeOldOnes(): void
+    {
+        self::$cookie = null;
+
+        $body = $this->request('GET', '/')['body'];
+
+        $this->assertMatchesRegularExpression('#href="/landing\.css\?v=\d+"#', $body);
+        $this->assertMatchesRegularExpression('#src="/landing\.js\?v=\d+"#', $body);
+        $this->assertSame(200, $this->request('GET', '/landing.js?v=1')['status']);
+    }
+
     public function testPasswordFieldIsLimitedTo20Characters(): void
     {
         self::$cookie = null;
@@ -249,6 +260,74 @@ final class HttpTest extends TestCase
         $logout = $this->submit('/logout', []);
         $this->assertSame(303, $logout['status']);
         $this->assertStringContainsString('id="entrada"', $this->request('GET', '/')['body']);
+    }
+
+    public function testLoginAsksForAName(): void
+    {
+        self::$cookie = null;
+        $body = $this->request('GET', '/')['body'];
+        $this->assertStringContainsString('name="nombre"', $body);
+
+        $response = $this->login(name: '   ');
+
+        $this->assertSame(422, $response['status']);
+        $this->assertStringContainsString('Escribe tu nombre', $response['body']);
+        $this->assertStringContainsString('id="entrada"', $this->request('GET', '/')['body'], 'Sin nombre no se entra');
+    }
+
+    public function testLoginRejectsTooLongOrControlCharacterNames(): void
+    {
+        self::$cookie = null;
+
+        $this->assertSame(422, $this->login(name: str_repeat('a', 31))['status']);
+        $this->assertSame(422, $this->login(name: "Ana")['status']);
+    }
+
+    public function testLoginSetsLongLivedNameCookieAndPrefillsItNextTime(): void
+    {
+        self::$cookie = null;
+
+        $response = $this->login(name: '  Nacho   García ');
+
+        $this->assertSame(303, $response['status']);
+        $cookie = current(array_filter($response['cookies'], static fn (string $c): bool => str_starts_with($c, 'quien=')));
+        $this->assertNotFalse($cookie, 'Falta la cookie con el nombre');
+        $this->assertStringStartsWith('quien=Nacho%20Garc', $cookie);
+        $this->assertSame(1, preg_match('/expires=([^;]+)/i', $cookie, $m));
+        $this->assertGreaterThan(time() + 5 * 365 * 86400, strtotime($m[1]), 'La cookie debe durar años');
+
+        // Nueva visita sin sesión pero con la cookie del nombre: el campo viene rellenado.
+        self::$cookie = 'quien=Nacho%20Garc%C3%ADa';
+        $this->assertStringContainsString('value="Nacho García"', $this->request('GET', '/')['body']);
+    }
+
+    public function testTaskRecordsWhoCreatedItAndShowsIt(): void
+    {
+        self::$cookie = null;
+        $this->login(name: 'Marta');
+        $this->submit('/tasks', ['title' => 'Hecha por Marta']);
+
+        self::$cookie = null;
+        $this->login(name: 'Pepe');
+        $this->submit('/tasks', ['title' => 'Hecha por Pepe']);
+
+        $authors = $this->pdo()->query('SELECT title, created_by FROM tasks ORDER BY id')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $this->assertSame(['Hecha por Marta' => 'Marta', 'Hecha por Pepe' => 'Pepe'], $authors);
+
+        $body = $this->request('GET', '/')['body'];
+        $this->assertStringContainsString('Creada por: Marta', $body);
+        $this->assertStringContainsString('Creada por: Pepe', $body);
+    }
+
+    public function testAuthorNameIsEscaped(): void
+    {
+        self::$cookie = null;
+        $this->login(name: '<b>x</b>');
+        $this->submit('/tasks', ['title' => 'T']);
+
+        $body = $this->request('GET', '/')['body'];
+        $this->assertStringContainsString('Creada por: &lt;b&gt;x&lt;/b&gt;', $body);
+        $this->assertStringNotContainsString('<b>x</b>', $body);
     }
 
     public function testLoginSuccessRedirectsToRoot(): void
@@ -538,7 +617,7 @@ final class HttpTest extends TestCase
         $tasks = $this->listedTasks($body);
         $this->assertContains('prioridad-alta', $tasks['Urgente']['classes']);
         $this->assertContains('prioridad-baja', $tasks['Cuando pueda']['classes']);
-        $this->assertStringContainsString('<link rel="stylesheet" href="/style.css">', $body);
+        $this->assertMatchesRegularExpression('#<link rel="stylesheet" href="/style\.css\?v=\d+">#', $body);
 
         $css = $this->request('GET', '/style.css');
         $this->assertSame(200, $css['status']);
@@ -556,7 +635,7 @@ final class HttpTest extends TestCase
         $this->assertStringNotContainsString(' open', $tag[0], 'De normal el diálogo está cerrado');
         $this->assertMatchesRegularExpression('#<dialog id="nueva-tarea".*<form method="post" action="/tasks">.*</dialog>#s', $body);
         $this->assertStringContainsString('command="close"', $body);
-        $this->assertStringContainsString('<script src="/app.js" defer></script>', $body);
+        $this->assertMatchesRegularExpression("#<script src=\"/app\\.js\\?v=\\d+\" defer></script>#", $body);
 
         $js = $this->request('GET', '/app.js');
         $this->assertSame(200, $js['status']);
@@ -592,7 +671,7 @@ final class HttpTest extends TestCase
 
     public function testCursorEffectsScriptIsOptionalAndDeferred(): void
     {
-        $this->assertStringContainsString('<script src="/efectos.js" defer></script>', $this->request('GET', '/')['body']);
+        $this->assertMatchesRegularExpression("#<script src=\"/efectos\\.js\\?v=\\d+\" defer></script>#", $this->request("GET", "/")["body"]);
 
         $js = $this->request('GET', '/efectos.js');
         $this->assertSame(200, $js['status']);
@@ -706,6 +785,7 @@ final class HttpTest extends TestCase
     private static function send(string $method, string $path, array $form, int $timeout, bool $required = true): ?array
     {
         $headers = [];
+        $setCookies = [];
         $ch = curl_init(self::$baseUrl . $path);
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST => $method,
@@ -713,10 +793,13 @@ final class HttpTest extends TestCase
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_COOKIE => self::$cookie ?? '',
-            CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$headers): int {
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$headers, &$setCookies): int {
                 if (str_contains($line, ':')) {
                     [$name, $value] = explode(':', $line, 2);
                     $headers[strtolower(trim($name))] = trim($value);
+                    if (strtolower(trim($name)) === 'set-cookie') {
+                        $setCookies[] = trim($value);
+                    }
                 }
                 return strlen($line);
             },
@@ -734,11 +817,26 @@ final class HttpTest extends TestCase
             return null;
         }
 
-        if (isset($headers['set-cookie'])) {
-            self::$cookie = explode(';', $headers['set-cookie'], 2)[0];
+        if ($setCookies !== []) {
+            // Jar mínimo: conserva las cookies anteriores y sustituye las que llegan de nuevo.
+            $jar = [];
+            foreach (array_filter(explode('; ', self::$cookie ?? '')) as $pair) {
+                [$k, $v] = explode('=', $pair, 2);
+                $jar[$k] = $v;
+            }
+            foreach ($setCookies as $line) {
+                [$k, $v] = explode('=', explode(';', $line, 2)[0], 2);
+                $jar[$k] = $v;
+            }
+            self::$cookie = implode('; ', array_map(static fn (string $k, string $v): string => "$k=$v", array_keys($jar), $jar));
         }
 
-        return ['status' => curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'headers' => $headers, 'body' => $body];
+        return [
+            'status' => curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
+            'headers' => $headers,
+            'body' => $body,
+            'cookies' => $setCookies,
+        ];
     }
 
     /**
