@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Gestor de tareas">
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="0.55" stop-color="#c026d3"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+    <radialGradient id="brillo" cx="0.3" cy="0.15" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hoja" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f3e8ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icono: cuadrado redondeado con degradado de la marca y reflejo. -->
+  <rect x="4" y="4" width="120" height="120" rx="32" fill="url(#fondo)"/>
+  <rect x="4" y="4" width="120" height="120" rx="32" fill="url(#brillo)"/>
+  <rect x="5" y="5" width="118" height="118" rx="31" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+
+  <!-- Lista de tareas: una hoja con tres renglones. -->
+  <rect x="28" y="30" width="60" height="72" rx="12" fill="url(#hoja)" opacity="0.95" transform="rotate(-6 58 66)"/>
+  <g transform="rotate(-6 58 66)" stroke-linecap="round">
+    <line x1="40" y1="50" x2="76" y2="50" stroke="#c4b5fd" stroke-width="6"/>
+    <line x1="40" y1="66" x2="70" y2="66" stroke="#f0abfc" stroke-width="6"/>
+    <line x1="40" y1="82" x2="64" y2="82" stroke="#fdba74" stroke-width="6"/>
+  </g>
+
+  <!-- Marca de verificación grande, con sombra. -->
+  <path d="M52 72 L70 90 L104 48" fill="none" stroke="#3b0764" stroke-opacity="0.3" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 4)"/>
+  <path d="M52 72 L70 90 L104 48" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M52 72 L70 90 L104 48" fill="none" stroke="#22c55e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Destellos. -->
+  <path d="M98 12 Q100 22 110 24 Q100 26 98 36 Q96 26 86 24 Q96 22 98 12 Z" fill="#ffffff"/>
+  <path d="M18 100 Q19 106 25 107 Q19 108 18 114 Q17 108 11 107 Q17 106 18 100 Z" fill="#ffffff" opacity="0.85"/>
+</svg>

@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      TASKS_DB_PATH: /app/data/tasks.sqlite
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Madrid}
+    volumes:
+      - datos:/app/data
+    restart: unless-stopped
+
+volumes:
+  datos:

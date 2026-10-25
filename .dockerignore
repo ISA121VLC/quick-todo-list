@@ -1,0 +1,15 @@
+.git
+.github
+.gitignore
+.phpunit.cache
+vendor
+tests
+docker
+data/*.sqlite
+phpunit.xml
+composer.json
+composer.lock
+*.md
+Dockerfile
+compose.yaml
+.dockerignore

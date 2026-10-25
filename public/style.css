@@ -1,0 +1,1057 @@
+/*
+ * Estilo "aurora": fondo de auroras animadas, panel de cristal, tarjetas que flotan
+ * y brillan al pasar el ratón, botones con degradado vivo y transiciones entre páginas.
+ * Solo CSS (sin JS), requisitos en SPEC.md §6. Todo el movimiento se desactiva
+ * con prefers-reduced-motion. Los contrastes están calculados para WCAG 2.1 AA
+ * contra el peor caso del fondo animado.
+ */
+
+/* ---------- Propiedades animables ---------- */
+
+@property --angulo {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+/* ---------- Paleta ---------- */
+
+:root {
+    color-scheme: light dark;
+
+    --fondo: #f3f0ff;
+    --aurora-1: #ff8fcf;
+    --aurora-2: #7cc4ff;
+    --aurora-3: #b69cff;
+    --aurora-4: #ffc58a;
+    --aurora-5: #7eecc6;
+    --aurora-opacidad: 0.75;
+
+    --panel: rgb(255 255 255 / 0.8);
+    --panel-borde: rgb(255 255 255 / 0.9);
+    --tarjeta: rgb(255 255 255 / 0.72);
+    --tarjeta-vencida: rgb(255 228 234 / 0.92);
+    --campo: #ffffff;
+    --borde-campo: #75659f;
+
+    --texto: #1e1238;
+    --texto-suave: #4c3f6b;
+    --acento: #6d28d9;
+    --peligro: #be123c;
+    --foco: #6d28d9;
+
+    --grad-1: #7c3aed;
+    --grad-2: #a21caf;
+    --grad-3: #be185d;
+    --sobre-grad: #ffffff;
+
+    --alta: #be123c;
+    --media: #b45309;
+    --baja: #047857;
+    --sobre-prioridad: #ffffff;
+
+    --titulo-1: #6d28d9;
+    --titulo-2: #be185d;
+    --titulo-3: #c2410c;
+
+    --dialogo: #ffffff;                        /* fondo del diálogo de alta (opaco) */
+    --foco-cursor: rgb(124 58 237 / 0.1);      /* foco de luz del panel (efectos.js) */
+    --brillo-tarjeta: rgb(255 255 255 / 0.6);  /* brillo bajo el cursor en tarjetas */
+
+    --sombra: 0 1px 2px rgb(30 18 56 / 8%), 0 8px 24px rgb(30 18 56 / 10%);
+    --sombra-alta: 0 2px 4px rgb(30 18 56 / 10%), 0 18px 40px rgb(30 18 56 / 18%);
+
+    --radio: 18px;
+    --radio-pequeno: 12px;
+    --rebote: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --suave: cubic-bezier(0.22, 1, 0.36, 1);
+
+    --fuente: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fondo: #0a0618;
+        --aurora-1: #6d28d9;
+        --aurora-2: #be185d;
+        --aurora-3: #0369a1;
+        --aurora-4: #047857;
+        --aurora-5: #b45309;
+        --aurora-opacidad: 0.7;
+
+        --panel: rgb(18 12 38 / 0.78);
+        --panel-borde: rgb(196 181 253 / 0.18);
+        --tarjeta: rgb(255 255 255 / 0.05);
+        --tarjeta-vencida: rgb(244 63 94 / 0.16);
+        --campo: #120c26;
+        --borde-campo: #a397d0;
+
+        --texto: #f4f0ff;
+        --texto-suave: #c9bfe6;
+        --acento: #c4b5fd;
+        --peligro: #fda4af;
+        --foco: #c4b5fd;
+
+        --alta: #fb7185;
+        --media: #fbbf24;
+        --baja: #34d399;
+        --sobre-prioridad: #1a0710;
+
+        --titulo-1: #c4b5fd;
+        --titulo-2: #f9a8d4;
+        --titulo-3: #fdba74;
+
+        --dialogo: #1a1430;
+        --foco-cursor: rgb(196 181 253 / 0.1);
+        --brillo-tarjeta: rgb(196 181 253 / 0.07);
+
+        --sombra: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 35%);
+        --sombra-alta: 0 2px 4px rgb(0 0 0 / 35%), 0 18px 40px rgb(0 0 0 / 50%);
+    }
+}
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scrollbar-color: var(--borde-campo) transparent;
+}
+
+body {
+    position: relative;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--fondo);
+    color: var(--texto);
+    font: 1rem/1.55 var(--fuente);
+    accent-color: var(--acento);
+}
+
+::selection {
+    background: var(--grad-2);
+    color: var(--sobre-grad);
+}
+
+/* ---------- Fondo: auroras que se mueven despacio ---------- */
+
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    z-index: -1;
+    inset: -25vmax;
+    opacity: var(--aurora-opacidad);
+    pointer-events: none;
+    will-change: transform;
+}
+
+body::before {
+    background:
+        radial-gradient(closest-side, var(--aurora-1), transparent) 10% 20% / 55vmax 55vmax no-repeat,
+        radial-gradient(closest-side, var(--aurora-2), transparent) 85% 15% / 50vmax 50vmax no-repeat,
+        radial-gradient(closest-side, var(--aurora-5), transparent) 60% 90% / 45vmax 45vmax no-repeat;
+    animation: aurora-a 28s ease-in-out infinite alternate;
+}
+
+body::after {
+    background:
+        radial-gradient(closest-side, var(--aurora-3), transparent) 30% 70% / 60vmax 60vmax no-repeat,
+        radial-gradient(closest-side, var(--aurora-4), transparent) 90% 60% / 40vmax 40vmax no-repeat;
+    animation: aurora-b 36s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-a {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    50% { transform: translate(6vmax, -4vmax) rotate(25deg) scale(1.1); }
+    100% { transform: translate(-5vmax, 5vmax) rotate(-15deg) scale(0.95); }
+}
+
+@keyframes aurora-b {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1.05); }
+    50% { transform: translate(-7vmax, 3vmax) rotate(-30deg) scale(0.9); }
+    100% { transform: translate(4vmax, -6vmax) rotate(20deg) scale(1.15); }
+}
+
+/* ---------- Panel principal: cristal esmerilado ---------- */
+
+main {
+    position: relative;
+    max-width: 78rem;
+    margin: 0.75rem;
+    padding: 1.5rem 1.1rem 2.5rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: var(--radio);
+    background: var(--panel);
+    box-shadow: var(--sombra-alta);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    animation: aparecer 0.6s var(--suave) backwards;
+}
+
+/* Foco de luz que sigue al cursor (efectos.js); detrás del contenido del panel. */
+main::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(520px circle at var(--foco-x, -999px) var(--foco-y, -999px), var(--foco-cursor), transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+}
+
+.cursor-activo main::before {
+    opacity: 1;
+}
+
+@media (min-width: 52rem) {
+    main {
+        margin: 2.5rem auto;
+        width: calc(100% - 3rem);
+        padding: 2.5rem 2.75rem 3rem;
+        border-radius: 28px;
+    }
+}
+
+/* ---------- Títulos ---------- */
+
+h1 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1rem;
+    margin: 0;
+    font-size: clamp(2rem, 6vw, 2.9rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    text-wrap: balance;
+}
+
+/* Logo (public/logo.svg), decorativo: el nombre de la app sigue siendo el texto del enlace.
+   Va en el h1 y no en el enlace para que no lo recorte el texto con degradado. */
+h1::before {
+    content: "";
+    flex: none;
+    width: clamp(4rem, 16vw, 6rem);
+    aspect-ratio: 1;
+    background: url("/logo.svg") center / contain no-repeat;
+    filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--grad-2) 45%, transparent));
+    animation: logo-flotar 6s ease-in-out infinite;
+}
+
+@media (hover: hover) {
+    h1:hover::before {
+        animation: logo-saludo 0.8s var(--rebote);
+    }
+}
+
+h1 a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: var(--titulo-1);
+    text-decoration: none;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    h1 a {
+        background: linear-gradient(90deg, var(--titulo-1), var(--titulo-2), var(--titulo-3), var(--titulo-2), var(--titulo-1)) 0 0 / 300% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: degradado 8s linear infinite;
+    }
+}
+
+/* ---------- Cabecera: título a la izquierda, botón "+" a la derecha ---------- */
+
+.barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.barra h1 {
+    min-width: 0;
+}
+
+.boton-nueva {
+    flex: none;
+    width: 3.75rem;
+    height: 3.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3)) 0 0 / 200% 200%;
+    color: var(--sobre-grad);
+    font-size: 2.4rem;
+    font-weight: 400;
+    line-height: 1;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--grad-2) 45%, transparent);
+}
+
+.boton-nueva > span[aria-hidden] {
+    display: block;
+    margin-top: -0.12em;  /* centra ópticamente el "+" */
+    transition: rotate 0.4s var(--rebote);
+}
+
+@media (hover: hover) {
+    .boton-nueva:hover {
+        box-shadow: 0 12px 32px color-mix(in srgb, var(--grad-2) 60%, transparent);
+    }
+
+    .boton-nueva:hover > span[aria-hidden] {
+        rotate: 90deg;
+    }
+}
+
+/* Texto solo para lectores de pantalla. */
+.solo-lectores {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+h2 {
+    margin: 2.25rem 0 0.9rem;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+p {
+    margin: 0 0 1rem;
+}
+
+a {
+    color: var(--acento);
+    text-underline-offset: 0.2em;
+    transition: color 0.2s;
+}
+
+:focus-visible {
+    outline: 3px solid var(--foco);
+    outline-offset: 3px;
+}
+
+/* ---------- Formularios de alta y edición: tarjeta de cristal ---------- */
+
+h2 + form {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: var(--radio);
+    background: var(--tarjeta);
+    box-shadow: var(--sombra);
+}
+
+@media (min-width: 36rem) {
+    h2 + form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    h2 + form > p:nth-of-type(1),
+    h2 + form > p:nth-of-type(2),
+    h2 + form > p:nth-of-type(n + 5) {
+        grid-column: 1 / -1;
+    }
+}
+
+h2 + form > p:last-of-type {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: color 0.2s, transform 0.3s var(--rebote);
+    transform-origin: left center;
+}
+
+/* La etiqueta del campo enfocado se ilumina. */
+p:has(> input:focus, > textarea:focus, > select:focus) > label {
+    color: var(--acento);
+    transform: translateX(4px);
+}
+
+input[type="text"],
+input[type="date"],
+textarea,
+select {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.85rem;
+    border: 1.5px solid var(--borde-campo);
+    border-radius: var(--radio-pequeno);
+    background: var(--campo);
+    color: var(--texto);
+    font: inherit;
+    transition: border-color 0.2s, box-shadow 0.3s var(--suave), transform 0.3s var(--suave);
+}
+
+textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--acento);
+    outline: none;
+    box-shadow:
+        0 0 0 3px var(--campo),
+        0 0 0 6px var(--foco),
+        0 10px 30px color-mix(in srgb, var(--grad-2) 30%, transparent);
+}
+
+.error {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--peligro);
+    font-size: 0.9rem;
+    font-weight: 700;
+    animation: sacudir 0.45s var(--suave);
+}
+
+.error::before {
+    content: "⚠️ " / "";
+}
+
+/* ---------- Diálogo de alta ---------- */
+
+.nueva-tarea {
+    width: min(34rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 1.75rem 1.5rem 1.5rem;
+    overflow: auto;
+    border: 1px solid var(--panel-borde);
+    border-radius: 24px;
+    background: var(--dialogo);
+    color: var(--texto);
+    box-shadow: var(--sombra-alta), 0 30px 80px color-mix(in srgb, var(--grad-2) 25%, transparent);
+    /* Estado cerrado; la transición anima abrir y cerrar (display/overlay discretos). */
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+    transition:
+        opacity 0.25s var(--suave),
+        transform 0.4s var(--rebote),
+        overlay 0.4s allow-discrete,
+        display 0.4s allow-discrete;
+}
+
+.nueva-tarea[open] {
+    opacity: 1;
+    transform: none;
+}
+
+@starting-style {
+    .nueva-tarea[open] {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+}
+
+.nueva-tarea::backdrop {
+    background: rgb(10 6 24 / 0%);
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+    transition:
+        background-color 0.3s,
+        backdrop-filter 0.3s,
+        overlay 0.4s allow-discrete,
+        display 0.4s allow-discrete;
+}
+
+.nueva-tarea[open]::backdrop {
+    background: rgb(10 6 24 / 45%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+@starting-style {
+    .nueva-tarea[open]::backdrop {
+        background: rgb(10 6 24 / 0%);
+        -webkit-backdrop-filter: blur(0);
+        backdrop-filter: blur(0);
+    }
+}
+
+.nueva-tarea h2 {
+    margin: 0 0 1rem;
+    padding-right: 3.25rem;
+}
+
+/* Dentro del diálogo el formulario no necesita su propia tarjeta. */
+.nueva-tarea h2 + form {
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.nueva-tarea .cerrar {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.75rem;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.6rem;
+    font-weight: 400;
+}
+
+/* ---------- Botones ---------- */
+
+button,
+.acciones a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    min-height: 2.75rem;
+    padding: 0.45rem 1.1rem;
+    overflow: hidden;
+    border: 1.5px solid var(--borde-campo);
+    border-radius: 999px;
+    background: var(--campo);
+    color: var(--texto);
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.35s var(--rebote), box-shadow 0.3s var(--suave), background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+button:active,
+.acciones a:active {
+    transform: scale(0.94);
+}
+
+/* Botón principal (Crear / Guardar): degradado vivo con destello al pasar el ratón. */
+h2 + form button[type="submit"] {
+    border: 0;
+    background: linear-gradient(110deg, var(--grad-1), var(--grad-2), var(--grad-3), var(--grad-2), var(--grad-1)) 0 0 / 300% 100%;
+    color: var(--sobre-grad);
+    padding-inline: 1.6rem;
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--grad-2) 40%, transparent);
+}
+
+h2 + form button[type="submit"]::before {
+    content: "🚀" / "";
+}
+
+h2 + form button[type="submit"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 45%) 50%, transparent 65%) -150% 0 / 200% 100% no-repeat;
+    pointer-events: none;
+}
+
+/* Iconos de las acciones de cada tarea. */
+.acciones a {
+    border-color: var(--acento);
+    color: var(--acento);
+}
+
+.acciones a::before {
+    content: "✏️" / "";
+}
+
+.acciones form[action$="/toggle"] button::before {
+    content: "✅" / "";
+}
+
+.tarea.completada .acciones form[action$="/toggle"] button::before {
+    content: "↩️" / "";
+}
+
+button.peligro {
+    border-color: var(--peligro);
+    color: var(--peligro);
+}
+
+button.peligro::before {
+    content: "🗑️" / "";
+}
+
+/* Efectos de ratón: solo en dispositivos con puntero que puede "pasar por encima". */
+@media (hover: hover) {
+    /* --mag-x/--mag-y: desplazamiento "magnético" hacia el cursor (efectos.js). */
+    button:hover,
+    .acciones a:hover {
+        transform: translate(var(--mag-x, 0px), calc(var(--mag-y, 0px) - 2px)) scale(1.04);
+        box-shadow: var(--sombra);
+    }
+
+    button:active,
+    .acciones a:active {
+        transform: scale(0.94);
+    }
+
+    h2 + form button[type="submit"]:hover {
+        animation: degradado 3s linear infinite;
+        box-shadow: 0 10px 30px color-mix(in srgb, var(--grad-2) 55%, transparent);
+    }
+
+    h2 + form button[type="submit"]:hover::after {
+        animation: destello 0.9s var(--suave);
+    }
+
+    .acciones a:hover {
+        background: var(--acento);
+        color: var(--campo);
+    }
+
+    .acciones form[action$="/toggle"] button:hover::before {
+        animation: rebotar 0.5s var(--rebote);
+    }
+
+    button.peligro:hover {
+        background: var(--peligro);
+        color: var(--campo);
+        animation: sacudir 0.4s var(--suave);
+    }
+}
+
+/* Enlace "Cancelar" de la edición. */
+h2 + form > p:last-of-type a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    font-weight: 700;
+}
+
+/* ---------- Filtros: interruptor de píldoras ---------- */
+
+.filtros {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    max-width: 100%;
+    margin-bottom: 1.25rem;
+    padding: 0.3rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: 999px;
+    background: var(--tarjeta);
+    box-shadow: var(--sombra);
+}
+
+.filtros a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 1.1rem;
+    border-radius: 999px;
+    color: var(--texto-suave);
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s, background-color 0.2s, transform 0.35s var(--rebote);
+}
+
+.filtros a:active {
+    transform: scale(0.94);
+}
+
+@media (hover: hover) {
+    .filtros a:hover {
+        color: var(--texto);
+        background: color-mix(in srgb, var(--acento) 12%, transparent);
+        transform: translate(var(--mag-x, 0px), var(--mag-y, 0px));
+    }
+}
+
+@media (max-width: 30rem) {
+    .filtros {
+        display: flex;
+        border-radius: var(--radio);
+    }
+
+    .filtros a {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 0 0.75rem;
+    }
+}
+
+/* La píldora activa "viaja" a su nueva posición al cambiar de filtro (View Transitions). */
+.filtros a.activo {
+    background: linear-gradient(110deg, var(--grad-1), var(--grad-3));
+    color: var(--sobre-grad);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--grad-2) 45%, transparent);
+    view-transition-name: filtro-activo;
+}
+
+/* ---------- Listado: tarjetas flotantes ---------- */
+
+.vacio {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    padding: 2.5rem 1rem;
+    border: 2px dashed var(--borde-campo);
+    border-radius: var(--radio);
+    color: var(--texto-suave);
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.vacio::before {
+    content: "🎉" / "";
+    font-size: 3rem;
+    animation: flotar 3s ease-in-out infinite;
+}
+
+.tareas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    align-items: stretch;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tarea {
+    --color-prioridad: var(--borde-campo);
+    position: relative;
+    padding: 1rem 1.1rem 1rem 1.35rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: var(--radio);
+    background-color: var(--tarjeta);
+    /* Brillo bajo el cursor (efectos.js); sin JS queda fuera de la tarjeta. */
+    background-image: radial-gradient(280px circle at var(--mx, -999px) var(--my, -999px), var(--brillo-tarjeta), transparent 70%);
+    box-shadow: var(--sombra);
+    transition: transform 0.4s var(--rebote), box-shadow 0.3s var(--suave);
+    animation: entrar 0.5s var(--suave) backwards;
+    /* Columna: las acciones quedan siempre abajo, alineadas entre tarjetas. */
+    display: flex;
+    flex-direction: column;
+}
+
+.tarea.prioridad-alta { --color-prioridad: var(--alta); }
+.tarea.prioridad-media { --color-prioridad: var(--media); }
+.tarea.prioridad-baja { --color-prioridad: var(--baja); }
+
+/* Barra de prioridad a la izquierda. */
+.tarea::before {
+    content: "";
+    position: absolute;
+    inset: 0.9rem auto 0.9rem 0.45rem;
+    width: 5px;
+    border-radius: 999px;
+    background: var(--color-prioridad);
+}
+
+/* Borde de neón giratorio que aparece al pasar el ratón. */
+.tarea::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    padding: 2px;
+    border-radius: inherit;
+    background: conic-gradient(from var(--angulo), var(--grad-1), var(--color-prioridad), var(--grad-3), var(--grad-1));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+/* Entrada escalonada de las tarjetas. */
+.tarea:nth-child(2) { animation-delay: 0.05s; }
+.tarea:nth-child(3) { animation-delay: 0.1s; }
+.tarea:nth-child(4) { animation-delay: 0.15s; }
+.tarea:nth-child(5) { animation-delay: 0.2s; }
+.tarea:nth-child(6) { animation-delay: 0.25s; }
+.tarea:nth-child(7) { animation-delay: 0.3s; }
+.tarea:nth-child(n + 8) { animation-delay: 0.35s; }
+
+@media (hover: hover) {
+    /* --rx/--ry: inclinación hacia el cursor (efectos.js); sin JS, solo se eleva. */
+    .tarea:hover {
+        transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px);
+        box-shadow: var(--sombra-alta), 0 12px 36px color-mix(in srgb, var(--color-prioridad) 30%, transparent);
+    }
+
+    .tarea:hover::after {
+        opacity: 1;
+        animation: girar 3s linear infinite;
+    }
+}
+
+.cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+}
+
+.titulo {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+}
+
+/* Prioridad: pastilla de color con icono. */
+.prioridad,
+.etiqueta-vencida {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.prioridad {
+    color: var(--sobre-prioridad);
+}
+
+.prioridad-alta .prioridad { background: var(--alta); }
+.prioridad-media .prioridad { background: var(--media); }
+.prioridad-baja .prioridad { background: var(--baja); }
+
+.prioridad-alta .prioridad::before { content: "🔥" / ""; }
+.prioridad-media .prioridad::before { content: "⚡" / ""; }
+.prioridad-baja .prioridad::before { content: "🌱" / ""; }
+
+.descripcion {
+    margin: 0.4rem 0 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.detalles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    margin-top: 0.4rem;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+}
+
+.acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.9rem;
+}
+
+.acciones form {
+    margin: 0;
+}
+
+/* Completada: tachada con trazo de degradado. */
+.tarea.completada {
+    --color-prioridad: var(--borde-campo);
+}
+
+.tarea.completada .titulo {
+    color: var(--texto-suave);
+    text-decoration: line-through;
+    text-decoration-color: var(--grad-2);
+    text-decoration-thickness: 3px;
+}
+
+.tarea.completada .titulo::before {
+    content: "🏆 " / "";
+}
+
+/* Vencida: tarjeta roja que late. */
+.tarea.vencida {
+    --color-prioridad: var(--alta);
+    background-color: var(--tarjeta-vencida);
+    animation: entrar 0.5s var(--suave) backwards, latir 2.4s ease-in-out 0.6s infinite;
+}
+
+.etiqueta-vencida {
+    background: var(--alta);
+    color: var(--sobre-prioridad);
+}
+
+.etiqueta-vencida::before {
+    content: "⏰" / "";
+    display: inline-block;
+    animation: timbre 1.6s ease-in-out infinite;
+}
+
+/* ---------- Aura del cursor (la crea efectos.js) ---------- */
+
+.cursor-aura {
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    border: 2px solid var(--acento);
+    border-radius: 50%;
+    box-shadow: 0 0 18px color-mix(in srgb, var(--grad-2) 45%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, scale 0.35s var(--rebote), border-color 0.25s;
+    will-change: transform;
+}
+
+.cursor-activo .cursor-aura {
+    opacity: 0.85;
+}
+
+.cursor-aura.sobre-interactivo {
+    border-color: var(--grad-2);
+    scale: 1.7;
+}
+
+/* ---------- Transiciones entre páginas (View Transitions, sin JS) ---------- */
+
+@view-transition {
+    navigation: auto;
+}
+
+::view-transition-old(root) {
+    animation: 0.25s var(--suave) both salir-pagina;
+}
+
+::view-transition-new(root) {
+    animation: 0.4s var(--suave) both entrar-pagina;
+}
+
+::view-transition-group(filtro-activo) {
+    animation-duration: 0.45s;
+    animation-timing-function: var(--rebote);
+}
+
+/* ---------- Animaciones ---------- */
+
+@keyframes aparecer {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+}
+
+@keyframes entrar {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+}
+
+@keyframes salir-pagina {
+    to { opacity: 0; transform: scale(0.98); }
+}
+
+@keyframes entrar-pagina {
+    from { opacity: 0; transform: translateY(12px); }
+}
+
+@keyframes degradado {
+    to { background-position: 300% 0; }
+}
+
+@keyframes destello {
+    to { background-position: 250% 0; }
+}
+
+@keyframes girar {
+    to { --angulo: 360deg; }
+}
+
+@keyframes logo-flotar {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-6px) rotate(-3deg); }
+}
+
+@keyframes logo-saludo {
+    30% { transform: scale(1.15) rotate(-12deg); }
+    60% { transform: scale(0.95) rotate(8deg); }
+}
+
+@keyframes flotar {
+    50% { transform: translateY(-8px) rotate(6deg); }
+}
+
+@keyframes rebotar {
+    40% { transform: scale(1.5) rotate(-10deg); }
+}
+
+@keyframes sacudir {
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}
+
+@keyframes latir {
+    0%, 100% { box-shadow: var(--sombra), 0 0 0 0 color-mix(in srgb, var(--alta) 0%, transparent); }
+    50% { box-shadow: var(--sombra), 0 0 0 6px color-mix(in srgb, var(--alta) 25%, transparent); }
+}
+
+@keyframes timbre {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    70% { transform: rotate(18deg); }
+    80% { transform: rotate(-16deg); }
+    90% { transform: rotate(10deg); }
+}
+
+/* ---------- Movimiento reducido: todo quieto ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+
+    @view-transition {
+        navigation: none;
+    }
+
+    .tarea:hover,
+    button:hover,
+    .acciones a:hover,
+    .filtros a:hover {
+        transform: none;
+    }
+
+    .cursor-aura,
+    main::before {
+        display: none;
+    }
+}
