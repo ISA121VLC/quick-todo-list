@@ -8,6 +8,7 @@ WORKDIR /app
 COPY --chown=app:app public/ public/
 COPY --chown=app:app src/ src/
 COPY --chown=app:app templates/ templates/
+COPY --chown=app:app bin/ bin/
 
 USER app
 

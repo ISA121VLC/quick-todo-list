@@ -21,6 +21,7 @@ final class HttpTest extends TestCase
     private const STARTUP_TIMEOUT = 5.0;
     private const POLL_INTERVAL_US = 20_000;
     private const START_ATTEMPTS = 3;
+    private const PASSWORD = 'clave-de-prueba';
 
     /** @var resource|null */
     private static $process = null;
@@ -55,6 +56,19 @@ final class HttpTest extends TestCase
         // Cada test empieza con la BD vacía; el servidor abre la conexión en cada petición.
         @unlink(self::$dbPath);
         self::$cookie = null;
+        $this->login();
+    }
+
+    /**
+     * Inicia sesión como lo haría el navegador: portada, token CSRF y POST /login.
+     */
+    private function login(string $password = self::PASSWORD): array
+    {
+        $body = $this->request('GET', '/')['body'];
+        $field = preg_quote(Csrf::FIELD, '/');
+        $this->assertSame(1, preg_match("/name=\"$field\" value=\"([0-9a-f]+)\"/", $body, $m), 'Falta el token CSRF de la portada');
+
+        return $this->request('POST', '/login', [Csrf::FIELD => $m[1], 'password' => $password]);
     }
 
     public function testEmptyDatabaseShowsNoTasks(): void
@@ -151,9 +165,100 @@ final class HttpTest extends TestCase
         $this->assertSame(0, $this->countTasks());
     }
 
-    public function testPostWithoutSessionIs403(): void
+    public function testPostWithoutLoginRedirectsToLandingAndChangesNothing(): void
     {
-        $this->assertSame(403, $this->request('POST', '/tasks', ['title' => 'X', Csrf::FIELD => ''])['status']);
+        self::$cookie = null;
+
+        $response = $this->request('POST', '/tasks', ['title' => 'X', Csrf::FIELD => '']);
+
+        $this->assertSame(303, $response['status']);
+        $this->assertSame('/', $response['headers']['location'] ?? null);
+        $this->assertSame(0, $this->countTasks());
+    }
+
+    public function testGuestSeesLandingInsteadOfTasks(): void
+    {
+        self::$cookie = null;
+
+        $response = $this->request('GET', '/');
+
+        $this->assertSame(200, $response['status']);
+        $this->assertStringContainsString('id="entrada"', $response['body']);
+        $this->assertStringNotContainsString('Nueva tarea', $response['body']);
+        $this->assertStringNotContainsString(' open', explode('<dialog', $response['body'])[1] ?? '', 'El diálogo empieza cerrado');
+    }
+
+    public function testGuestCannotOpenEditOrListRoutes(): void
+    {
+        $this->createTask('Privada');
+        self::$cookie = null;
+
+        $this->assertSame(303, $this->request('GET', '/tasks/' . $this->lastTaskId() . '/edit')['status']);
+    }
+
+    public function testEnterQueryServesTheDialogOpen(): void
+    {
+        self::$cookie = null;
+
+        $this->assertMatchesRegularExpression('/<dialog[^>]* open/', $this->request('GET', '/?entrar')['body']);
+    }
+
+    public function testLoginRejectsWrongAndOverlongPasswordsWithoutLoggingIn(): void
+    {
+        self::$cookie = null;
+
+        $wrong = $this->login('incorrecta');
+        $this->assertSame(401, $wrong['status']);
+        $this->assertStringContainsString('Contraseña incorrecta', $wrong['body']);
+        $this->assertStringContainsString('Te quedan 2 intentos', $wrong['body']);
+
+        $long = $this->login(str_repeat('a', 21));
+        $this->assertSame(401, $long['status']);
+
+        $this->assertStringContainsString('id="entrada"', $this->request('GET', '/')['body']);
+    }
+
+    public function testPasswordFieldIsLimitedTo20Characters(): void
+    {
+        self::$cookie = null;
+
+        $this->assertStringContainsString('maxlength="20"', $this->request('GET', '/')['body']);
+    }
+
+    public function testThreeFailuresLockTheIpEvenWithTheRightPassword(): void
+    {
+        self::$cookie = null;
+
+        $this->assertSame(401, $this->login('mal1')['status']);
+        $this->assertSame(401, $this->login('mal2')['status']);
+        $third = $this->login('mal3');
+        $this->assertSame(429, $third['status']);
+        $this->assertSame('120', $third['headers']['retry-after'] ?? null);
+
+        $correct = $this->login();
+        $this->assertSame(429, $correct['status'], 'Bloqueada: ni la contraseña correcta entra');
+        $this->assertStringContainsString('id="entrada"', $this->request('GET', '/')['body']);
+    }
+
+    public function testSuccessfulLoginRedirectsAndShowsTasksAndLogoutReturnsToLanding(): void
+    {
+        $response = $this->request('GET', '/');
+        $this->assertStringContainsString('Nueva tarea', $response['body']);
+        $this->assertStringContainsString('action="/logout"', $response['body']);
+
+        $logout = $this->submit('/logout', []);
+        $this->assertSame(303, $logout['status']);
+        $this->assertStringContainsString('id="entrada"', $this->request('GET', '/')['body']);
+    }
+
+    public function testLoginSuccessRedirectsToRoot(): void
+    {
+        self::$cookie = null;
+
+        $response = $this->login();
+
+        $this->assertSame(303, $response['status']);
+        $this->assertSame('/', $response['headers']['location'] ?? null);
     }
 
     public function testToggleSwitchesCompletedBackAndForth(): void
@@ -339,8 +444,8 @@ final class HttpTest extends TestCase
 
         $body = $this->request('GET', '/?estado=pendientes')['body'];
 
-        // Alta, toggle y borrar.
-        $this->assertSame(3, substr_count($body, '<form method="post"'));
+        // Alta, toggle y borrar, más el de salir (que no lleva filtro).
+        $this->assertSame(4, substr_count($body, '<form method="post"'));
         $this->assertSame(3, substr_count($body, 'name="estado" value="pendientes"'));
         $this->assertStringContainsString('href="/tasks/' . $id . '/edit?estado=pendientes"', $body);
     }
@@ -647,6 +752,7 @@ final class HttpTest extends TestCase
             'TASKS_DB_PATH' => self::$dbPath,
             'APP_NOW' => '2026-03-10T12:00:00Z',
             'APP_TIMEZONE' => 'UTC',
+            'APP_PASSWORD_HASH' => password_hash(self::PASSWORD, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
 
         for ($attempt = 1; $attempt <= self::START_ATTEMPTS; $attempt++) {

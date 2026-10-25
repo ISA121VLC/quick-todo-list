@@ -318,6 +318,16 @@ h1 a {
     }
 }
 
+.salir {
+    flex: none;
+    margin: 0 0 0 auto;
+}
+
+.salir button {
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+}
+
 /* Texto solo para lectores de pantalla. */
 .solo-lectores {
     position: absolute;

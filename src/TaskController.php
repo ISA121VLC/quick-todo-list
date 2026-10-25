@@ -248,7 +248,7 @@ final class TaskController
     {
         $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $content = $this->capture($template, $vars + ['e' => $e]);
-        $page = $this->capture('layout', ['content' => $content, 'e' => $e, 'addButton' => $vars['addButton'] ?? false]);
+        $page = $this->capture('layout', ['content' => $content, 'e' => $e, 'addButton' => $vars['addButton'] ?? false, 'csrfToken' => $vars['csrfToken'] ?? null]);
 
         http_response_code($status);
         header('Content-Type: text/html; charset=UTF-8');

@@ -19,7 +19,16 @@ final class Database
             completed   INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
             created_at  TEXT    NOT NULL,
             updated_at  TEXT    NOT NULL
-        )
+        );
+        CREATE TABLE IF NOT EXISTS login_throttle (
+            ip            TEXT    PRIMARY KEY,
+            fails         INTEGER NOT NULL DEFAULT 0,
+            window_start  INTEGER NOT NULL DEFAULT 0,
+            strikes       INTEGER NOT NULL DEFAULT 0,
+            strike_at     INTEGER NOT NULL DEFAULT 0,
+            blocked_until INTEGER NOT NULL DEFAULT 0,
+            blocked_kind  TEXT    NULL
+        );
         SQL;
 
     /**

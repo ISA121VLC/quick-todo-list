@@ -1,3 +1,4 @@
 /vendor/
 /data/*.sqlite
 /.phpunit.cache/
+/data/password.hash

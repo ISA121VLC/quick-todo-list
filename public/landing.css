@@ -1,0 +1,517 @@
+/*
+ * Portada pública. Reutiliza la paleta y el fondo de auroras de style.css.
+ * El estado base de la demo es "todo hecho"; la animación (solo con movimiento permitido)
+ * cuenta la historia en bucle: aparecen las tareas, se tachan una a una, la barra se llena.
+ */
+
+@property --hecho {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 1;
+}
+
+.landing {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2rem, 6vw, 4rem);
+    min-height: 100dvh;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding:
+        max(1rem, env(safe-area-inset-top))
+        max(1.1rem, env(safe-area-inset-right))
+        calc(6rem + env(safe-area-inset-bottom))
+        max(1.1rem, env(safe-area-inset-left));
+    cursor: pointer;
+}
+
+.landing-marca {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+    display: grid;
+    flex: 1;
+    align-content: center;
+    gap: clamp(2rem, 6vw, 3.5rem);
+}
+
+.sobretitulo {
+    display: inline-block;
+    margin: 0 0 0.9rem;
+    padding: 0.3rem 0.85rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--texto-suave);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.hero h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2.1rem, 8.5vw, 4.2rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+
+.degradado {
+    background: linear-gradient(100deg, var(--titulo-1), var(--titulo-2), var(--titulo-3), var(--titulo-1)) 0 0 / 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.explica {
+    max-width: 34rem;
+    margin: 0 0 1.6rem;
+    color: var(--texto-suave);
+    font-size: clamp(1.02rem, 3.6vw, 1.2rem);
+    text-wrap: pretty;
+}
+
+.explica strong {
+    color: var(--texto);
+}
+
+.boton-entrar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 3.25rem;
+    padding: 0.7rem 1.7rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3)) 0 0 / 200% 200%;
+    color: var(--sobre-grad);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--grad-2) 45%, transparent);
+    transition: transform 0.3s var(--rebote), box-shadow 0.3s;
+}
+
+.boton-entrar:focus-visible {
+    outline: 3px solid var(--foco);
+    outline-offset: 4px;
+}
+
+@media (hover: hover) {
+    .boton-entrar:hover {
+        transform: translateY(-3px) scale(1.04);
+        box-shadow: 0 16px 36px color-mix(in srgb, var(--grad-2) 60%, transparent);
+    }
+}
+
+/* Aviso fijo: en cualquier punto de la página recuerda que todo es pulsable. */
+.pista {
+    position: fixed;
+    left: 50%;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: max-content;
+    max-width: calc(100% - 2rem);
+    margin: 0;
+    padding: 0.6rem 1.1rem;
+    translate: -50% 0;
+    border: 1px solid var(--panel-borde);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--texto);
+    font-size: 0.9rem;
+    font-weight: 700;
+    box-shadow: var(--sombra);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    pointer-events: none;
+}
+
+.pulso {
+    flex: none;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    background: var(--grad-3);
+}
+
+/* ---------- Demo: tarjeta con tareas que se tachan ---------- */
+
+.demo {
+    position: relative;
+    width: min(100%, 24rem);
+    margin: 0 auto;
+}
+
+.demo-tarjeta {
+    padding: 1.2rem 1.1rem 1.3rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: 22px;
+    background: var(--panel);
+    box-shadow: var(--sombra-alta), 0 30px 70px color-mix(in srgb, var(--grad-2) 22%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+}
+
+.demo-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+    font-size: 1.25rem;
+}
+
+.demo-hecho {
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    background: var(--baja);
+    color: var(--sobre-prioridad);
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.demo-barra {
+    height: 0.5rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--texto) 12%, transparent);
+}
+
+.demo-barra span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--grad-1), var(--grad-3));
+}
+
+.demo-lista {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.demo-lista li {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: var(--radio-pequeno);
+    background: var(--tarjeta);
+}
+
+.casilla {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--borde-campo);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--grad-1) calc(var(--hecho) * 100%), transparent);
+    border-color: color-mix(in srgb, var(--grad-1) calc(var(--hecho) * 100%), var(--borde-campo));
+    scale: calc(1 + 1 * var(--hecho) * (1 - var(--hecho)));
+}
+
+.casilla svg {
+    fill: none;
+    stroke: var(--sobre-grad);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 24;
+    stroke-dashoffset: calc((1 - var(--hecho)) * 24);
+}
+
+.demo-lista .texto {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    font-weight: 700;
+    opacity: calc(1 - var(--hecho) * 0.45);
+}
+
+.demo-lista .texto::after {
+    content: "";
+    position: absolute;
+    top: 52%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: currentcolor;
+    transform: scaleX(var(--hecho));
+    transform-origin: left;
+}
+
+.chip {
+    flex: none;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    color: var(--sobre-prioridad);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.chip.alta { background: var(--alta); }
+.chip.media { background: var(--media); }
+.chip.baja { background: var(--baja); }
+
+.chispa {
+    position: absolute;
+    color: var(--titulo-2);
+    font-size: 1.6rem;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.chispa.c1 { top: -0.9rem; right: 0.4rem; }
+.chispa.c2 { bottom: 2.2rem; left: -0.5rem; color: var(--baja); font-weight: 900; }
+.chispa.c3 { right: -0.3rem; bottom: -0.9rem; color: var(--titulo-1); font-size: 1.2rem; }
+
+/* ---------- Tres pasos ---------- */
+
+.pasos {
+    display: grid;
+    gap: 1rem;
+}
+
+.paso {
+    padding: 1.3rem 1.2rem;
+    border: 1px solid var(--panel-borde);
+    border-radius: var(--radio);
+    background: var(--panel);
+    box-shadow: var(--sombra);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+
+.paso h2 {
+    margin: 0.5rem 0 0.3rem;
+    font-size: 1.3rem;
+}
+
+.paso p {
+    margin: 0;
+    color: var(--texto-suave);
+}
+
+.paso-num {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--grad-1), var(--grad-3));
+    color: var(--sobre-grad);
+    font-weight: 800;
+}
+
+@media (min-width: 48rem) {
+    .hero {
+        grid-template-columns: 1.15fr 1fr;
+        align-items: center;
+    }
+
+    .pasos {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* ---------- Diálogo de contraseña ---------- */
+
+.entrada {
+    width: min(26rem, calc(100% - 2rem));
+    cursor: auto;
+}
+
+.entrada input[type="password"] {
+    display: block;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.6rem 0.85rem;
+    border: 1.5px solid var(--borde-campo);
+    border-radius: var(--radio-pequeno);
+    background: var(--campo);
+    color: var(--texto);
+    font: inherit;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    transition: border-color 0.2s, box-shadow 0.3s var(--suave);
+}
+
+.entrada input[type="password"]:focus {
+    border-color: var(--acento);
+    outline: none;
+    box-shadow:
+        0 0 0 3px var(--campo),
+        0 0 0 6px var(--foco);
+}
+
+.entrada input:disabled,
+.entrada button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.contador {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--texto-suave);
+    font-size: 0.8rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Movimiento ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    .landing-marca,
+    .sobretitulo,
+    .hero h1,
+    .explica,
+    .boton-entrar {
+        animation: l-sube 0.8s var(--suave) backwards;
+    }
+
+    .landing-marca { animation-delay: 0.05s; }
+    .sobretitulo { animation-delay: 0.1s; }
+    .hero h1 { animation-delay: 0.2s; }
+    .explica { animation-delay: 0.35s; }
+    .boton-entrar { animation-delay: 0.5s; }
+
+    .degradado { animation: l-degradado 8s linear infinite; }
+    .pulso { animation: l-pulso 1.6s ease-out infinite; }
+    .boton-entrar { animation: l-sube 0.8s var(--suave) 0.5s backwards, l-respira 3.2s ease-in-out 1.5s infinite; }
+
+    .demo { animation: l-sube 0.9s var(--suave) 0.3s backwards; }
+    .demo-tarjeta { animation: l-flota 7s ease-in-out infinite; }
+
+    /* Bucle de 14 s: aparecen, se tachan una a una, "¡Todo hecho!" y vuelta a empezar. */
+    .demo-lista li { animation: 14s ease-in-out infinite; }
+    .demo-lista .t1 { animation-name: l-item-1, l-hecho-1; }
+    .demo-lista .t2 { animation-name: l-item-2, l-hecho-2; }
+    .demo-lista .t3 { animation-name: l-item-3, l-hecho-3; }
+    .demo-lista .t4 { animation-name: l-item-4, l-hecho-4; }
+    .demo-barra span { animation: l-progreso 14s ease-in-out infinite; }
+    .demo-hecho { animation: l-badge 14s var(--rebote) infinite; }
+
+    .chispa { animation: l-chispa 4s ease-in-out infinite; }
+    .chispa.c2 { animation-delay: -1.3s; }
+    .chispa.c3 { animation-delay: -2.6s; }
+
+    @supports (animation-timeline: view()) {
+        .paso {
+            animation: l-revela linear both;
+            animation-timeline: view();
+            animation-range: entry 0% entry 70%;
+        }
+    }
+}
+
+@keyframes l-sube {
+    from { opacity: 0; transform: translateY(24px); }
+}
+
+@keyframes l-degradado {
+    to { background-position: 250% 0; }
+}
+
+@keyframes l-respira {
+    50% { box-shadow: 0 14px 38px color-mix(in srgb, var(--grad-3) 60%, transparent); }
+}
+
+@keyframes l-pulso {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--grad-3) 70%, transparent); }
+    100% { box-shadow: 0 0 0 0.9rem transparent; }
+}
+
+@keyframes l-flota {
+    50% { transform: translateY(-10px) rotate(0.6deg); }
+}
+
+@keyframes l-chispa {
+    0%, 100% { opacity: 0.35; transform: translateY(0) rotate(0deg) scale(0.85); }
+    50% { opacity: 1; transform: translateY(-10px) rotate(25deg) scale(1.15); }
+}
+
+@keyframes l-revela {
+    from { opacity: 0; transform: translateY(36px) scale(0.96); }
+}
+
+@keyframes l-item-1 {
+    0%, 4% { opacity: 0; transform: translateY(16px); }
+    8%, 92% { opacity: 1; transform: none; }
+    97%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes l-item-2 {
+    0%, 10% { opacity: 0; transform: translateY(16px); }
+    14%, 92% { opacity: 1; transform: none; }
+    97%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes l-item-3 {
+    0%, 16% { opacity: 0; transform: translateY(16px); }
+    20%, 92% { opacity: 1; transform: none; }
+    97%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes l-item-4 {
+    0%, 22% { opacity: 0; transform: translateY(16px); }
+    26%, 92% { opacity: 1; transform: none; }
+    97%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes l-hecho-1 {
+    0%, 40% { --hecho: 0; }
+    44%, 94% { --hecho: 1; }
+    98%, 100% { --hecho: 0; }
+}
+
+@keyframes l-hecho-2 {
+    0%, 52% { --hecho: 0; }
+    56%, 94% { --hecho: 1; }
+    98%, 100% { --hecho: 0; }
+}
+
+@keyframes l-hecho-3 {
+    0%, 64% { --hecho: 0; }
+    68%, 94% { --hecho: 1; }
+    98%, 100% { --hecho: 0; }
+}
+
+@keyframes l-hecho-4 {
+    0%, 76% { --hecho: 0; }
+    80%, 94% { --hecho: 1; }
+    98%, 100% { --hecho: 0; }
+}
+
+@keyframes l-progreso {
+    0%, 40% { width: 0; }
+    44%, 52% { width: 25%; }
+    56%, 64% { width: 50%; }
+    68%, 76% { width: 75%; }
+    80%, 94% { width: 100%; }
+    98%, 100% { width: 0; }
+}
+
+@keyframes l-badge {
+    0%, 80% { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+    86%, 94% { opacity: 1; transform: scale(1) rotate(0deg); }
+    98%, 100% { opacity: 0; transform: scale(0.4); }
+}

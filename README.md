@@ -35,6 +35,18 @@ La aplicación no necesita `vendor/`.
 | `TASKS_DB_PATH` | `data/tasks.sqlite` | ruta de la base de datos |
 | `APP_TIMEZONE` | `date.timezone` de php.ini | zona horaria con la que se decide si una tarea está vencida |
 
+## Acceso con contraseña
+
+La web muestra una portada pública; al pulsar en cualquier parte se pide la contraseña (máximo 20 caracteres). Defínela con:
+
+```
+php bin/set-password.php
+```
+
+Se guarda su hash en `data/password.hash` (o en `APP_PASSWORD_FILE`; también vale `APP_PASSWORD_HASH`). Sin contraseña configurada nadie puede entrar. Con Docker: `docker compose exec app php bin/set-password.php`.
+
+Límite de intentos por IP: 3 fallos en menos de 1 minuto bloquean el acceso 2 minutos; si tras ese bloqueo vuelven a fallar 3 intentos, la IP queda vetada 1 hora. Detrás de Cloudflare se usa la cabecera `CF-Connecting-IP` (solo se confía en ella si la conexión llega desde loopback).
+
 ## Con Docker
 
 Alternativa sin instalar PHP: necesitas Docker con el plugin Compose.

@@ -2,6 +2,7 @@
 /**
  * @var string $content HTML ya renderizado de la página.
  * @var bool $addButton Mostrar el botón "+" que abre el formulario de alta (solo en el listado).
+ * @var ?string $csrfToken Si hay, se muestra el botón para salir.
  * @var Closure(mixed): string $e
  */
 ?>
@@ -25,6 +26,12 @@
                     <span aria-hidden="true">+</span>
                     <span class="solo-lectores">Nueva tarea</span>
                 </button>
+            <?php endif ?>
+            <?php if ($csrfToken !== null): ?>
+                <form method="post" action="/logout" class="salir">
+                    <input type="hidden" name="<?= $e(App\Csrf::FIELD) ?>" value="<?= $e($csrfToken) ?>">
+                    <button type="submit">Salir</button>
+                </form>
             <?php endif ?>
         </header>
         <?= $content ?>
